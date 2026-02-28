@@ -1,0 +1,7 @@
+build/
+sdkconfig
+sdkconfig.old
+main/mavlink/
+.vscode/
+managed_components/
+dependencies.lock

@@ -1,0 +1,22 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "mavlink_handler.c"
+        "pid.c"
+        "battery.c"
+        "pwm_output.c"
+        "params.c"
+        "wifi_link.c"
+    INCLUDE_DIRS
+        "."
+        "mavlink/common"
+        "mavlink"
+    REQUIRES
+        driver
+        esp_adc
+        esp_wifi
+        esp_timer
+        nvs_flash
+        tinyusb
+        freertos
+)
