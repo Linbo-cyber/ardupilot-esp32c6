@@ -10,6 +10,8 @@ idf_component_register(
     INCLUDE_DIRS
         "."
         "mavlink/common"
+        "mavlink/standard"
+        "mavlink/minimal"
         "mavlink"
     REQUIRES
         driver
@@ -19,3 +21,5 @@ idf_component_register(
         nvs_flash
         freertos
 )
+
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-address-of-packed-member)

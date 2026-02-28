@@ -7,6 +7,7 @@
 #include "driver/uart.h"
 
 #include "config.h"
+#include "mavlink/common/mavlink.h"
 #include "mavlink_handler.h"
 #include "battery.h"
 #include "pwm_output.h"
