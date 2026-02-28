@@ -20,7 +20,8 @@
 | 油门 PWM | GPIO4 | 接电调信号线 |
 | 转向 PWM | GPIO5 | 接舵机信号线 |
 | 电池 ADC | GPIO0 (ADC1_CH0) | 电阻分压：R1=30kΩ → R2=10kΩ → GND |
-| USB | 原生 USB | OTG 线连手机 |
+| UART TX | GPIO16 | 接 USB-TTL 或手机 OTG 串口模块 TX |
+| UART RX | GPIO17 | 接 USB-TTL 或手机 OTG 串口模块 RX |
 
 ### 电池分压电路
 

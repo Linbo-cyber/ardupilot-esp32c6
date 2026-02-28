@@ -4,8 +4,7 @@
 #include "freertos/task.h"
 #include "esp_timer.h"
 #include "nvs_flash.h"
-#include "tinyusb.h"
-#include "tusb_cdc_acm.h"
+#include "driver/uart.h"
 
 #include "config.h"
 #include "mavlink_handler.h"
@@ -14,6 +13,11 @@
 #include "params.h"
 #include "pid.h"
 #include "wifi_link.h"
+
+#define UART_PORT       UART_NUM_0
+#define UART_TX_PIN     16
+#define UART_RX_PIN     17
+#define UART_BUF_SIZE   1024
 
 static rover_state_t rover = {
     .mode = MODE_MANUAL,
@@ -30,22 +34,9 @@ static pid_t steer_pid;
 static pid_t throttle_pid;
 static uint32_t last_rc_time = 0;
 
-// ── USB CDC ─────────────────────────────────────
-static void usb_cdc_send(const uint8_t *buf, int len) {
-    tinyusb_cdcacm_write_queue(TINYUSB_CDC_ACM_0, buf, len);
-    tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0);
-}
-
-static void usb_cdc_rx_callback(int itf, cdcacm_event_t *event) {
-    uint8_t buf[256];
-    size_t rx_size = 0;
-    esp_err_t ret = tinyusb_cdcacm_read(itf, buf, sizeof(buf), &rx_size);
-    if (ret == ESP_OK) {
-        for (size_t i = 0; i < rx_size; i++) {
-            mavlink_handle_byte(buf[i], 0);
-        }
-        last_rc_time = (uint32_t)(esp_timer_get_time() / 1000);
-    }
+// ── UART send ───────────────────────────────────
+static void uart_send(const uint8_t *buf, int len) {
+    uart_write_bytes(UART_PORT, buf, len);
 }
 
 // ── Control Loop Task ───────────────────────────
@@ -92,9 +83,19 @@ static void control_task(void *arg) {
             pwm_failsafe();
         }
 
+        // ── UART MAVLink receive ──
+        uint8_t uart_buf[280];
+        int n = uart_read_bytes(UART_PORT, uart_buf, sizeof(uart_buf), 0);
+        if (n > 0) {
+            for (int i = 0; i < n; i++) {
+                mavlink_handle_byte(uart_buf[i], 0);
+            }
+            last_rc_time = rover.uptime_ms;
+        }
+
         // ── WiFi MAVLink receive ──
         uint8_t wifi_buf[280];
-        int n = wifi_link_receive(wifi_buf, sizeof(wifi_buf));
+        n = wifi_link_receive(wifi_buf, sizeof(wifi_buf));
         if (n > 0) {
             for (int i = 0; i < n; i++) {
                 mavlink_handle_byte(wifi_buf[i], 1);
@@ -121,7 +122,6 @@ static void control_task(void *arg) {
     }
 }
 
-// ── Arm/Disarm handler (called from mavlink_handler) ──
 extern void mavlink_handler_set_state(rover_state_t *state);
 extern void mavlink_handler_set_usb_send(void (*fn)(const uint8_t *, int));
 
@@ -140,24 +140,19 @@ void app_main(void) {
     mavlink_handler_init();
     mavlink_handler_set_state(&rover);
 
-    // USB CDC
-    const tinyusb_config_t tusb_cfg = {
-        .device_descriptor = NULL,
-        .string_descriptor = NULL,
-        .external_phy = false,
+    // UART
+    uart_config_t uart_cfg = {
+        .baud_rate = USB_CDC_BAUD,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
     };
-    tinyusb_driver_install(&tusb_cfg);
-
-    tinyusb_config_cdcacm_t acm_cfg = {
-        .usb_dev = TINYUSB_USBDEV_0,
-        .cdc_port = TINYUSB_CDC_ACM_0,
-        .callback_rx = &usb_cdc_rx_callback,
-        .callback_rx_wanted_char = NULL,
-        .callback_line_state_changed = NULL,
-        .callback_line_coding_changed = NULL,
-    };
-    tusb_cdc_acm_init(&acm_cfg);
-    mavlink_handler_set_usb_send(usb_cdc_send);
+    uart_driver_install(UART_PORT, UART_BUF_SIZE, UART_BUF_SIZE, 0, NULL, 0);
+    uart_param_config(UART_PORT, &uart_cfg);
+    uart_set_pin(UART_PORT, UART_TX_PIN, UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    mavlink_handler_set_usb_send(uart_send);
 
     // WiFi backup link
     wifi_link_init();
