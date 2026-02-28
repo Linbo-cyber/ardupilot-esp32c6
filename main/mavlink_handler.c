@@ -216,7 +216,7 @@ void mavlink_send_rc_channels(rover_state_t *state) {
     mavlink_msg_rc_channels_pack(SYSTEM_ID, COMPONENT_ID, &msg,
         state->uptime_ms, 2,
         state->rc_steering, 0, state->rc_throttle, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255);
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255);
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
     mavlink_send_uart_bytes(MAVLINK_COMM_0, buf, len);

@@ -1,9 +1,9 @@
 #pragma once
 
 // ── Vehicle ─────────────────────────────────────
-#define VEHICLE_TYPE        MAV_TYPE_GROUND_ROVER
+#define VEHICLE_TYPE        10      // MAV_TYPE_GROUND_ROVER
 #define SYSTEM_ID           1
-#define COMPONENT_ID        MAV_COMP_ID_AUTOPILOT1
+#define COMPONENT_ID        1       // MAV_COMP_ID_AUTOPILOT1
 #define FIRMWARE_VERSION    0x04060000  // 4.6.0
 
 // ── Control Loop ────────────────────────────────
